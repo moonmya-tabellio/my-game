@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#576374">
+  <title>신지연 | 자기소개</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <main class="profile">
+    <header class="intro">
+      <p class="eyebrow">CONCEPT DESIGNER</p>
+      <h1>신지연</h1>
+      <p class="tagline">세계를 숨 쉬게 하는 컨셉트 디자이너</p>
+      <p class="education">전주대학교 게임콘텐츠학과 기획, 2D 그래픽 전공</p>
+    </header>
+
+    <section class="games" aria-labelledby="games-title">
+      <h2 id="games-title">좋아하는 게임</h2>
+      <ul class="game-list">
+        <li><button class="game" type="button" aria-pressed="false" data-game="star-rail">붕괴: 스타레일</button></li>
+        <li><button class="game" type="button" aria-pressed="false" data-game="valorant">발로란트</button></li>
+        <li><button class="game" type="button" aria-pressed="false" data-game="honkai-impact-3rd">붕괴 3rd</button></li>
+      </ul>
+      <p class="hint">게임 이름을 누르면 소개와 공식 사이트 링크가 표시됩니다.</p>
+      <section class="game-details" id="game-details" aria-labelledby="game-detail-title" aria-live="polite" hidden>
+        <h3 id="game-detail-title"></h3>
+        <p id="game-description"></p>
+        <a class="official-link" id="official-link" target="_blank" rel="noopener noreferrer">공식 사이트 방문</a>
+      </section>
+    </section>
+    <section class="ideas" aria-labelledby="ideas-title">
+      <h2 id="ideas-title">만든 게임 아이디어</h2>
+      <div class="idea-list">
+        <section class="idea-entry" aria-labelledby="idea-1-title">
+          <h3 id="idea-1-title">1번</h3>
+          <label>제목:<input type="text" name="idea-1-title" value="강의실에 좋은 자리를 사수해라." readonly></label>
+          <label>한 줄 설명:<textarea name="idea-1-summary" rows="3" readonly>강의 시작까지 5분전 강의실 남은 자리 중 좋은 자리를 가장 먼저 사수하는 게임</textarea></label>
+          <label>플레이어가 하는 일:<textarea name="idea-1-action" rows="6" readonly>수업 시작까지 제한 시간 안에 강의실 내 여러 자리 중 NPC보다 더 먼저 좋은 자리를 사수하는 게임. 콘센트, 창가, 교수님 시야에서 멀리 떨어진 자리 등 특정 보너스 자리가 있음.</textarea></label>
+          <label>게임이 끝나는 조건:<textarea name="idea-1-ending" rows="5" readonly>총 8번의 강의 중 플레이어가 100점을 넘기면 성공. 8번의 강의가 끝났는데 100점을 넘기지 못하거나, 제한 시간 내 자리를 못 앉으면 게임 오버.</textarea></label>
+        </section>
+        <section class="idea-entry" aria-labelledby="idea-2-title">
+          <h3 id="idea-2-title">2번</h3>
+          <label>제목:<input type="text" name="idea-2-title" value="5분 공강시간을 지켜라" readonly></label>
+          <label>한 줄 설명:<textarea name="idea-2-summary" rows="3" readonly>다음 강의까지 남은 공강시간은 5분. 그 안에 해야할 일을 전부 해야하는 게임</textarea></label>
+          <label>플레이어가 하는 일:<textarea name="idea-2-action" rows="3" readonly>플레이어가 캠퍼스를 돌아다니며 여러 장소를 방문하면서 미션을 수행하는 게임</textarea></label>
+          <label>게임이 끝나는 조건:<textarea name="idea-2-ending" rows="5" readonly>제한 시간안에 할일들을 전부 끝내면 성공. 제한 시간 안에 할일을 다 하지 못하거나, 길에 있는 장애물 또는 학생들과 충돌하여 HP가 전부 깍이면 게임 오버.</textarea></label>
+        </section>
+        <section class="idea-entry" aria-labelledby="idea-3-title">
+          <h3 id="idea-3-title">3번</h3>
+          <label>제목:<input type="text" name="idea-3-title" value="우당탕탕 과제 제출 기한을 지켜라" readonly></label>
+          <label>한 줄 설명:<textarea name="idea-3-summary" rows="3" readonly>과제 제출 마감까지 3분. 그 안에 교수님 연구실에 무사히 가져가 제출하자</textarea></label>
+          <label>플레이어가 하는 일:<textarea name="idea-3-action" rows="4" readonly>플레이어가 과제를 들고 교수님 연구실로 출발. 교수님 강의실까지 가는 길에 있는 장애물과 부딪히면 과제 완성도가 감소. 제한시간 안에 완성도가 높은 과제를 제출하는 게임</textarea></label>
+          <label>게임이 끝나는 조건:<textarea name="idea-3-ending" rows="4" readonly>제한시간 내에 장애물을 피해 교수님 연구실로 도착하였을때 과제 완성도가 80% 이상이면 별 3개, 40% 이하면 별 1개, 그 사이면 별 2개</textarea></label>
+        </section>
+      </div>
+    </section>
+    <footer class="page-date">
+      <time id="today-date"></time>
+    </footer>
+  </main>
+</body>
+</html>

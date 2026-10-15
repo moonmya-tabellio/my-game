@@ -1,0 +1,258 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: dark;
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  color: #f4f4f4;
+  background: #414c61;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  background: #414c61;
+  color: #f4f4f4;
+}
+
+.profile {
+  width: min(calc(100% - 32px), 760px);
+  padding: 88px 40px 96px;
+  border: 1px solid #c59fb1;
+  border-radius: 6px;
+}
+
+.intro {
+  padding-bottom: 56px;
+  border-bottom: 1px solid rgb(244 244 244 / 28%);
+}
+
+.eyebrow {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  opacity: 0.76;
+}
+
+h1 {
+  margin: 0;
+  color: #afd1dd;
+  font-family: "Gowun Dodum", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  font-size: clamp(56px, 10vw, 96px);
+  line-height: 1.12;
+  font-weight: 500;
+}
+
+.tagline {
+  margin: 22px 0 0;
+  font-size: 21px;
+  line-height: 1.6;
+}
+
+.education {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+  opacity: 0.82;
+}
+
+.games {
+  padding-top: 42px;
+}
+
+h2 {
+  margin: 0 0 20px;
+  font-size: 23px;
+  line-height: 1.4;
+}
+
+.game-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.game {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 58px;
+  padding: 12px 14px;
+  border: 1px solid rgb(244 244 244 / 45%);
+  border-radius: 4px;
+  background: transparent;
+  color: #f4f4f4;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.45;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, font-size 160ms ease;
+}
+
+.game:hover {
+  font-size: 17px;
+}
+
+.game:hover,
+.game:focus-visible,
+.game[aria-pressed="true"] {
+  border-color: #f4f4f4;
+  background: #f4f4f4;
+  color: #303947;
+}
+
+.game:focus-visible {
+  outline: 3px solid rgb(244 244 244 / 55%);
+  outline-offset: 3px;
+}
+
+.hint {
+  min-height: 24px;
+  margin: 16px 0 0;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.game-details {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgb(244 244 244 / 28%);
+}
+
+.game-details h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.game-details p {
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.official-link {
+  display: inline-block;
+  margin-top: 14px;
+  color: #afd1dd;
+  font-weight: 700;
+  text-underline-offset: 4px;
+}
+
+.ideas {
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 1px solid rgb(244 244 244 / 28%);
+}
+
+.ideas h2 {
+  margin-bottom: 14px;
+}
+
+.idea-list {
+  display: grid;
+  gap: 20px;
+}
+
+.idea-entry {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  padding-top: 18px;
+  border-top: 1px solid rgb(244 244 244 / 28%);
+}
+
+.idea-entry h3 {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 18px;
+}
+
+.idea-entry label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.idea-entry input,
+.idea-entry textarea {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #c59fb1;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 5%);
+  color: #f4f4f4;
+  font: inherit;
+  line-height: 1.6;
+}
+
+.idea-entry textarea {
+  min-height: 68px;
+  resize: vertical;
+}
+
+.idea-entry input:focus-visible,
+.idea-entry textarea:focus-visible {
+  outline: 3px solid rgb(197 159 177 / 45%);
+  outline-offset: 2px;
+}
+
+.page-date {
+  margin-top: 36px;
+  text-align: right;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+@media (max-width: 560px) {
+  .profile {
+    padding: 64px 24px 72px;
+  }
+
+  .intro {
+    padding-bottom: 40px;
+  }
+
+  .tagline {
+    font-size: 18px;
+  }
+
+  .education {
+    font-size: 14px;
+  }
+
+  .game-list {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .game {
+    min-height: 54px;
+    text-align: left;
+    justify-content: flex-start;
+  }
+
+  .idea-entry {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
