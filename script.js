@@ -10,8 +10,6 @@ const layout = {
 	laneCount: 5,
 	laneDashLength: 14,
 	playerCenterX: 400,
-	playerHeadCenterY: 520,
-	playerHeadRadius: 20,
 	playerBodyY: 540,
 	playerBodySize: 40,
 	circleObstacleRadius: 15,
@@ -22,11 +20,10 @@ const layout = {
 
 // 배경과 게임 요소에 사용할 색을 정합니다.
 const colors = {
-	side: "#88bd98",
+	side: "#808080",
 	road: "#7a8e8e",
 	laneLine: "#426f6f",
-	playerHead: "#968181",
-	playerBody: "#ddd4d4",
+	playerBody: "#fff",
 	circleObstacle: "#595963",
 	squareObstacle: "#4b4b58",
 	text: "#fff",
@@ -112,11 +109,6 @@ function gameLoop() {
 		layout.playerBodySize,
 		layout.playerBodySize,
 	);
-
-	ctx.fillStyle = colors.playerHead;
-	ctx.beginPath();
-	ctx.arc(layout.playerCenterX, layout.playerHeadCenterY, layout.playerHeadRadius, 0, Math.PI * 2);
-	ctx.fill();
 
 	// 길 위쪽에 제한시간과 과제 완성도를 표시합니다.
 	ctx.fillStyle = colors.text;
