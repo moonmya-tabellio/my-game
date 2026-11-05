@@ -7,6 +7,7 @@ const layout = {
 	roadY: 0,
 	roadWidth: 500,
 	roadHeight: 600,
+	farRoadWidth: 360,
 	laneCount: 5,
 	laneDashLength: 14,
 	playerCenterX: 400,
@@ -22,7 +23,8 @@ const layout = {
 const colors = {
 	side: "#808080",
 	road: "#7a8e8e",
-	laneLine: "#426f6f",
+	roadFar: "#526465",
+	laneLine: "#fff",
 	playerBody: "#fff",
 	circleObstacle: "#595963",
 	squareObstacle: "#4b4b58",
@@ -30,24 +32,36 @@ const colors = {
 };
 
 // 각 장애물의 위치와 속도를 저장합니다.
-const laneWidth = layout.roadWidth / layout.laneCount;
+const vanishingX = canvas.width / 2;
 const obstacles = [];
 for (let laneIndex = 0; laneIndex < layout.laneCount; laneIndex += 1) {
-	const obstacleX = layout.roadX + laneWidth * (laneIndex + 0.5);
 	obstacles.push({
 		type: "circle",
-		x: obstacleX,
+		laneIndex,
 		y: 125 - laneIndex * 130,
 		size: layout.circleObstacleRadius,
 		speed: 1 + Math.random() * 1.5,
 	});
 	obstacles.push({
 		type: "square",
-		x: obstacleX,
+		laneIndex,
 		y: 185 - laneIndex * 130,
 		size: layout.squareObstacleSize,
 		speed: 1 + Math.random() * 1.5,
 	});
+}
+
+// 깊이에 따라 도로 안에서의 레인 위치와 물체 크기를 계산합니다.
+function getPerspectiveDepth(y) {
+	return Math.max(0, Math.min(1, y / canvas.height));
+}
+
+function getLaneX(laneIndex, depth) {
+	const farRoadLeft = vanishingX - layout.farRoadWidth / 2;
+	const farRoadRight = vanishingX + layout.farRoadWidth / 2;
+	const roadLeft = farRoadLeft + (layout.roadX - farRoadLeft) * depth;
+	const roadRight = farRoadRight + (layout.roadX + layout.roadWidth - farRoadRight) * depth;
+	return roadLeft + (roadRight - roadLeft) * (laneIndex + 0.5) / layout.laneCount;
 }
 
 function gameLoop() {
@@ -63,43 +77,69 @@ function gameLoop() {
 		}
 	}
 
-	// 그리기: 배경과 길을 그립니다.
+	// 그리기: 배경과 위쪽이 좁은 사다리꼴 도로를 그립니다.
 	ctx.fillStyle = colors.side;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-	ctx.fillStyle = colors.road;
-	ctx.fillRect(layout.roadX, layout.roadY, layout.roadWidth, layout.roadHeight);
+	const roadGradient = ctx.createLinearGradient(0, layout.roadY, 0, canvas.height);
+	roadGradient.addColorStop(0, colors.roadFar);
+	roadGradient.addColorStop(1, colors.road);
+	ctx.fillStyle = roadGradient;
+	ctx.beginPath();
+	ctx.moveTo(vanishingX - layout.farRoadWidth / 2, layout.roadY);
+	ctx.lineTo(vanishingX + layout.farRoadWidth / 2, layout.roadY);
+	ctx.lineTo(layout.roadX + layout.roadWidth, canvas.height);
+	ctx.lineTo(layout.roadX, canvas.height);
+	ctx.closePath();
+	ctx.fill();
 
-	// 길을 다섯 개 트랙으로 나누는 점선을 그립니다.
+	// 레인 구분선을 흰색으로 그립니다.
 	ctx.strokeStyle = colors.laneLine;
-	ctx.lineWidth = 2;
-	ctx.setLineDash([layout.laneDashLength, layout.laneDashLength]);
 	for (let laneIndex = 1; laneIndex < layout.laneCount; laneIndex += 1) {
-		const lineX = layout.roadX + laneWidth * laneIndex;
-		ctx.beginPath();
-		ctx.moveTo(lineX, layout.roadY);
-		ctx.lineTo(lineX, layout.roadY + layout.roadHeight);
-		ctx.stroke();
+		let y = layout.roadY;
+		while (y < canvas.height) {
+			const depth = getPerspectiveDepth(y);
+			const dashLength = Math.max(2, layout.laneDashLength * depth);
+			const endY = Math.min(y + dashLength, canvas.height);
+			ctx.lineWidth = Math.max(1.5, 3 * depth);
+			ctx.beginPath();
+			ctx.moveTo(getLaneX(laneIndex - 0.5, depth), y);
+			ctx.lineTo(getLaneX(laneIndex - 0.5, getPerspectiveDepth(endY)), endY);
+			ctx.stroke();
+			y = endY + Math.max(2, layout.laneDashLength * depth);
+		}
 	}
-	ctx.setLineDash([]);
 
-	// 원형과 사각형 장애물을 그립니다.
+	// 장애물은 원근 레인 위치에 맞춰 그리고, 아래로 내려올수록 기존 크기로 커집니다.
+	ctx.save();
+	ctx.beginPath();
+	ctx.moveTo(vanishingX - layout.farRoadWidth / 2, layout.roadY);
+	ctx.lineTo(vanishingX + layout.farRoadWidth / 2, layout.roadY);
+	ctx.lineTo(layout.roadX + layout.roadWidth, canvas.height);
+	ctx.lineTo(layout.roadX, canvas.height);
+	ctx.closePath();
+	ctx.clip();
 	for (const obstacle of obstacles) {
+		const centerY = obstacle.type === "circle" ? obstacle.y : obstacle.y + obstacle.size / 2;
+		const depth = getPerspectiveDepth(centerY);
+		const renderedSize = obstacle.size * depth;
+		const obstacleX = getLaneX(obstacle.laneIndex, depth);
 		if (obstacle.type === "circle") {
 			ctx.fillStyle = colors.circleObstacle;
 			ctx.beginPath();
-			ctx.arc(obstacle.x, obstacle.y, obstacle.size, 0, Math.PI * 2);
+			ctx.arc(obstacleX, centerY, renderedSize, 0, Math.PI * 2);
 			ctx.fill();
 		} else {
 			ctx.fillStyle = colors.squareObstacle;
 			ctx.fillRect(
-				obstacle.x - obstacle.size / 2,
-				obstacle.y,
-				obstacle.size,
-				obstacle.size,
+				obstacleX - renderedSize / 2,
+				centerY - renderedSize / 2,
+				renderedSize,
+				renderedSize,
 			);
 		}
 	}
+	ctx.restore();
 
 	// 화면 아래 가운데에 플레이어를 그립니다.
 	ctx.fillStyle = colors.playerBody;
