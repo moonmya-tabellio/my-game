@@ -1,6 +1,13 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+// 플레이어의 이동 속도와 현재 눌린 키 상태를 저장합니다.
+const playerSpeed = 5;
+const keys = {
+	ArrowLeft: false,
+	ArrowRight: false,
+};
+
 // 화면과 게임 요소의 좌표 및 크기를 한곳에서 조정합니다.
 const layout = {
 	roadX: 150,
@@ -204,6 +211,16 @@ function drawWindows() {
 // ===== 창문 그리기 끝 =====
 
 function gameLoop() {
+	// 눌린 좌우 방향키를 확인해 매 프레임 플레이어의 가로 위치를 갱신합니다.
+	layout.playerCenterX += (Number(keys.ArrowRight) - Number(keys.ArrowLeft)) * playerSpeed;
+
+	// 플레이어가 화면의 좌우 벽을 벗어나지 않도록 위치를 제한합니다.
+	const playerHalfSize = layout.playerBodySize / 2;
+	layout.playerCenterX = Math.max(
+		playerHalfSize,
+		Math.min(canvas.width - playerHalfSize, layout.playerCenterX),
+	);
+
 	// 지우기: 이전 프레임의 화면을 지웁니다.
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -331,3 +348,24 @@ function gameLoop() {
 }
 
 gameLoop();
+
+document.addEventListener("keydown", (event) => {
+	console.log(event.key);
+	if (Object.hasOwn(keys, event.key)) {
+		keys[event.key] = true;
+	}
+
+	if (event.key.startsWith("Arrow") || event.key === " ") {
+		event.preventDefault();
+	}
+});
+
+document.addEventListener("keyup", (event) => {
+	if (Object.hasOwn(keys, event.key)) {
+		keys[event.key] = false;
+	}
+
+	if (event.key.startsWith("Arrow") || event.key === " ") {
+		event.preventDefault();
+	}
+});
