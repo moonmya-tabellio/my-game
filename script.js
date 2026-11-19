@@ -11,6 +11,9 @@ const keys = {
 const enemyCount = 5;
 const enemySize = 15;
 const enemySpeeds = [2, 2.5, 3, 3.5, 4];
+// 과제 완성도와 충돌 한 번당 감점 점수입니다.
+let completion = 100;
+const collisionPenalty = 10;
 // true이면 충돌 판정 영역을 빨간 테두리로 표시합니다.
 const showHitbox = true;
 
@@ -90,6 +93,7 @@ function checkCollision(rectA, rectB) {
 }
 
 let cloudOffsetY = 0;
+let collidingEnemyIndices = new Set();
 
 // ===== 창문 그리기 (v3 창문 스타일 + 꼭짓점 직접 지정) =====
 // side: 왼쪽 -1, 오른쪽 1 (오른쪽은 x를 좌우 대칭으로 뒤집어 계산)
@@ -214,8 +218,9 @@ function gameLoop() {
 		enemy.x = getLaneX(enemyLaneIndices[index], getPerspectiveDepth(enemy.y));
 	}
 
-	// 각 적의 사각형 판정 영역을 플레이어와 비교합니다.
-	for (const enemy of enemies) {
+	// 각 적의 사각형 판정 영역을 플레이어와 비교하고, 새로 부딪쳤을 때만 감점합니다.
+	const currentCollisions = new Set();
+	for (const [index, enemy] of enemies.entries()) {
 		const enemyHitbox = {
 			x: enemy.x - enemy.size,
 			y: enemy.y - enemy.size,
@@ -223,9 +228,14 @@ function gameLoop() {
 			height: enemy.size * 2,
 		};
 		if (checkCollision(playerHitbox, enemyHitbox)) {
-			console.log("충돌!");
+			currentCollisions.add(index);
+			if (!collidingEnemyIndices.has(index)) {
+				console.log("충돌!");
+				completion = Math.max(0, completion - collisionPenalty);
+			}
 		}
 	}
+	collidingEnemyIndices = currentCollisions;
 
 	// 그리기: 배경과 위쪽이 좁은 사다리꼴 도로를 그립니다.
 	ctx.fillStyle = colors.side;
@@ -312,7 +322,7 @@ function gameLoop() {
 	ctx.fillText("제한시간 60초", layout.roadX + layout.hudPadding, layout.hudY);
 
 	ctx.textAlign = "right";
-	ctx.fillText("과제 완성도 100점", layout.roadX + layout.roadWidth - layout.hudPadding, layout.hudY);
+	ctx.fillText(`과제 완성도 ${completion}점`, layout.roadX + layout.roadWidth - layout.hudPadding, layout.hudY);
 
 	requestAnimationFrame(gameLoop);
 }
