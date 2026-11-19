@@ -1,8 +1,7 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// 플레이어의 이동 속도와 현재 눌린 키 상태를 저장합니다.
-const playerSpeed = 5;
+// 현재 눌린 좌우 방향키와 플레이어가 있는 레인을 저장합니다.
 const keys = {
 	ArrowLeft: false,
 	ArrowRight: false,
@@ -37,6 +36,8 @@ const layout = {
 		[[127, 365], [107, 541], [12, 403], [47, 249]],
 	],
 };
+
+let playerLaneIndex = Math.floor(layout.laneCount / 2);
 
 // 배경과 게임 요소에 사용할 색을 정합니다.
 const colors = {
@@ -211,15 +212,9 @@ function drawWindows() {
 // ===== 창문 그리기 끝 =====
 
 function gameLoop() {
-	// 눌린 좌우 방향키를 확인해 매 프레임 플레이어의 가로 위치를 갱신합니다.
-	layout.playerCenterX += (Number(keys.ArrowRight) - Number(keys.ArrowLeft)) * playerSpeed;
-
-	// 플레이어가 화면의 좌우 벽을 벗어나지 않도록 위치를 제한합니다.
-	const playerHalfSize = layout.playerBodySize / 2;
-	layout.playerCenterX = Math.max(
-		playerHalfSize,
-		Math.min(canvas.width - playerHalfSize, layout.playerCenterX),
-	);
+	// 플레이어를 현재 레인의 가운데에 배치합니다.
+	const playerDepth = getPerspectiveDepth(layout.playerBodyY + layout.playerBodySize / 2);
+	layout.playerCenterX = getLaneX(playerLaneIndex, playerDepth);
 
 	// 지우기: 이전 프레임의 화면을 지웁니다.
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -352,6 +347,14 @@ gameLoop();
 document.addEventListener("keydown", (event) => {
 	console.log(event.key);
 	if (Object.hasOwn(keys, event.key)) {
+		// 키를 누르고 있는 동안 반복 이동하지 않도록 최초 입력만 처리합니다.
+		if (!keys[event.key]) {
+			if (event.key === "ArrowLeft") {
+				playerLaneIndex = Math.max(0, playerLaneIndex - 1);
+			} else {
+				playerLaneIndex = Math.min(layout.laneCount - 1, playerLaneIndex + 1);
+			}
+		}
 		keys[event.key] = true;
 	}
 
