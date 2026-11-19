@@ -7,6 +7,11 @@ const keys = {
 	ArrowRight: false,
 };
 
+// 적의 개수, 크기, 시작 속도를 설정합니다.
+const enemyCount = 5;
+const enemySize = 15;
+const enemySpeeds = [2, 2.5, 3, 3.5, 4];
+
 // 화면과 게임 요소의 좌표 및 크기를 한곳에서 조정합니다.
 const layout = {
 	roadX: 150,
@@ -19,12 +24,7 @@ const layout = {
 	playerCenterX: 400,
 	playerBodyY: 540,
 	playerBodySize: 40,
-	circleObstacleRadius: 15,
-	squareObstacleSize: 30,
-	obstacleMinScale: 0.45,
-	obstacleGapMin: 170,
-	obstacleGapMax: 320,
-	obstacleSpeed: 2,
+	cloudSpeed: 2,
 	hudY: 20,
 	hudPadding: 12,
 	// [창문 설정] 왼쪽 벽 창문의 네 꼭짓점 좌표입니다. (오른쪽은 자동으로 좌우 대칭)
@@ -46,60 +46,29 @@ const colors = {
 	roadFar: "#828eaa",
 	laneLine: "#fff",
 	playerBody: "#fff",
-	circleObstacle: "#595963",
-	squareObstacle: "#4b4b58",
+	enemy: "#595963",
 	text: "#fff",
 	// [창문 색]
 	windowGlass: "#9acff3",
 	windowFrame: "#3f4c52",
 };
 
-// 각 장애물의 위치와 속도를 저장합니다.
+// 적마다 레인을 하나씩 맡아, 각 레인의 가운데에서 시작합니다.
 const vanishingX = canvas.width / 2;
-const obstacles = [];
-for (let laneIndex = 0; laneIndex < layout.laneCount; laneIndex += 1) {
-	obstacles.push({
-		type: "circle",
-		laneIndex,
-		y: 0,
-		size: layout.circleObstacleRadius,
-		speed: layout.obstacleSpeed,
-		active: false,
-		startDelay: Math.random() * 150,
-		minimumGap: getRandomObstacleGap(),
-	});
-	obstacles.push({
-		type: "square",
-		laneIndex,
-		y: 0,
-		size: layout.squareObstacleSize,
-		speed: layout.obstacleSpeed,
-		active: false,
-		startDelay: Math.random() * 150,
-		minimumGap: getRandomObstacleGap(),
-	});
-}
-
-const obstaclesByLane = Array.from({ length: layout.laneCount }, () => []);
-for (const obstacle of obstacles) {
-	obstaclesByLane[obstacle.laneIndex].push(obstacle);
-}
+const enemyLaneIndices = Array.from(
+	{ length: enemyCount },
+	() => Math.floor(Math.random() * layout.laneCount),
+);
+const enemies = Array.from({ length: enemyCount }, (_, index) => ({
+	x: getLaneX(enemyLaneIndices[index], 0),
+	y: -enemySize,
+	speed: enemySpeeds[index],
+	size: enemySize,
+}));
 
 // 깊이에 따라 도로 안에서의 레인 위치와 물체 크기를 계산합니다.
 function getPerspectiveDepth(y) {
 	return Math.max(0, Math.min(1, y / canvas.height));
-}
-
-function getObstacleCenterY(obstacle, y = obstacle.y) {
-	return obstacle.type === "circle" ? y : y + obstacle.size / 2;
-}
-
-function getObstacleHalfSize(obstacle) {
-	return obstacle.type === "circle" ? obstacle.size : obstacle.size / 2;
-}
-
-function getRandomObstacleGap() {
-	return layout.obstacleGapMin + Math.random() * (layout.obstacleGapMax - layout.obstacleGapMin);
 }
 
 function getLaneX(laneIndex, depth) {
@@ -203,7 +172,7 @@ function drawWindow(side, shape) {
 }
 
 function drawWindows() {
-	cloudOffsetY += layout.obstacleSpeed;
+	cloudOffsetY += layout.cloudSpeed;
 	for (const shape of layout.windowShapes) {
 		drawWindow(-1, shape);
 		drawWindow(1, shape);
@@ -219,33 +188,14 @@ function gameLoop() {
 	// 지우기: 이전 프레임의 화면을 지웁니다.
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-	// 계산: 장애물마다 무작위 대기 후 y=0에서 출발하고, 서로 간격을 유지합니다.
-	for (const laneObstacles of obstaclesByLane) {
-		for (const obstacle of laneObstacles) {
-			const otherObstacle = laneObstacles.find((other) => other !== obstacle);
-			if (obstacle.active) {
-				obstacle.y += obstacle.speed;
-				if (getObstacleCenterY(obstacle) - getObstacleHalfSize(obstacle) > canvas.height) {
-					obstacle.active = false;
-					obstacle.y = 0;
-					obstacle.startDelay = Math.random() * 150;
-					obstacle.minimumGap = getRandomObstacleGap();
-				}
-				continue;
-			}
-
-			obstacle.startDelay -= 1;
-			const launchCenterY = getObstacleCenterY(obstacle, 0);
-			const requiredDistance = getObstacleHalfSize(obstacle)
-				+ getObstacleHalfSize(otherObstacle)
-				+ obstacle.minimumGap;
-			if (obstacle.startDelay <= 0
-				&& (!otherObstacle.active
-					|| Math.abs(getObstacleCenterY(otherObstacle) - launchCenterY) >= requiredDistance)) {
-				obstacle.active = true;
-				obstacle.y = 0;
-			}
+	// 적은 무작위로 정한 레인을 따라가며, 아래로 벗어나면 새 레인 위쪽에서 다시 시작합니다.
+	for (const [index, enemy] of enemies.entries()) {
+		enemy.y += enemy.speed;
+		if (enemy.y - enemy.size > canvas.height) {
+			enemy.y = -enemy.size;
+			enemyLaneIndices[index] = Math.floor(Math.random() * layout.laneCount);
 		}
+		enemy.x = getLaneX(enemyLaneIndices[index], getPerspectiveDepth(enemy.y));
 	}
 
 	// 그리기: 배경과 위쪽이 좁은 사다리꼴 도로를 그립니다.
@@ -284,7 +234,7 @@ function gameLoop() {
 		}
 	}
 
-	// 장애물은 원근 레인 위치에 맞춰 그리고, 아래로 내려올수록 기존 크기로 커집니다.
+	// 적 배열을 순회하며 화면에 모두 그립니다.
 	ctx.save();
 	ctx.beginPath();
 	ctx.moveTo(vanishingX - layout.farRoadWidth / 2, layout.roadY);
@@ -293,30 +243,11 @@ function gameLoop() {
 	ctx.lineTo(layout.roadX, canvas.height);
 	ctx.closePath();
 	ctx.clip();
-	for (const obstacle of obstacles) {
-		if (!obstacle.active) {
-			continue;
-		}
-
-		const centerY = obstacle.type === "circle" ? obstacle.y : obstacle.y + obstacle.size / 2;
-		const depth = getPerspectiveDepth(centerY);
-		const obstacleScale = layout.obstacleMinScale + (1 - layout.obstacleMinScale) * depth;
-		const renderedSize = obstacle.size * obstacleScale;
-		const obstacleX = getLaneX(obstacle.laneIndex, depth);
-		if (obstacle.type === "circle") {
-			ctx.fillStyle = colors.circleObstacle;
-			ctx.beginPath();
-			ctx.arc(obstacleX, centerY, renderedSize, 0, Math.PI * 2);
-			ctx.fill();
-		} else {
-			ctx.fillStyle = colors.squareObstacle;
-			ctx.fillRect(
-				obstacleX - renderedSize / 2,
-				centerY - renderedSize / 2,
-				renderedSize,
-				renderedSize,
-			);
-		}
+	for (const enemy of enemies) {
+		ctx.fillStyle = colors.enemy;
+		ctx.beginPath();
+		ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
+		ctx.fill();
 	}
 	ctx.restore();
 
