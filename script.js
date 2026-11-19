@@ -11,6 +11,8 @@ const keys = {
 const enemyCount = 5;
 const enemySize = 15;
 const enemySpeeds = [2, 2.5, 3, 3.5, 4];
+// true이면 충돌 판정 영역을 빨간 테두리로 표시합니다.
+const showHitbox = true;
 
 // 화면과 게임 요소의 좌표 및 크기를 한곳에서 조정합니다.
 const layout = {
@@ -77,6 +79,14 @@ function getLaneX(laneIndex, depth) {
 	const roadLeft = farRoadLeft + (layout.roadX - farRoadLeft) * depth;
 	const roadRight = farRoadRight + (layout.roadX + layout.roadWidth - farRoadRight) * depth;
 	return roadLeft + (roadRight - roadLeft) * (laneIndex + 0.5) / layout.laneCount;
+}
+
+// 두 사각형의 가로와 세로가 모두 겹치는지 확인합니다.
+function checkCollision(rectA, rectB) {
+	return rectA.x < rectB.x + rectB.width
+		&& rectA.x + rectA.width > rectB.x
+		&& rectA.y < rectB.y + rectB.height
+		&& rectA.y + rectA.height > rectB.y;
 }
 
 let cloudOffsetY = 0;
@@ -184,6 +194,12 @@ function gameLoop() {
 	// 플레이어를 현재 레인의 가운데에 배치합니다.
 	const playerDepth = getPerspectiveDepth(layout.playerBodyY + layout.playerBodySize / 2);
 	layout.playerCenterX = getLaneX(playerLaneIndex, playerDepth);
+	const playerHitbox = {
+		x: layout.playerCenterX - layout.playerBodySize / 2,
+		y: layout.playerBodyY,
+		width: layout.playerBodySize,
+		height: layout.playerBodySize,
+	};
 
 	// 지우기: 이전 프레임의 화면을 지웁니다.
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -196,6 +212,19 @@ function gameLoop() {
 			enemyLaneIndices[index] = Math.floor(Math.random() * layout.laneCount);
 		}
 		enemy.x = getLaneX(enemyLaneIndices[index], getPerspectiveDepth(enemy.y));
+	}
+
+	// 각 적의 사각형 판정 영역을 플레이어와 비교합니다.
+	for (const enemy of enemies) {
+		const enemyHitbox = {
+			x: enemy.x - enemy.size,
+			y: enemy.y - enemy.size,
+			width: enemy.size * 2,
+			height: enemy.size * 2,
+		};
+		if (checkCollision(playerHitbox, enemyHitbox)) {
+			console.log("충돌!");
+		}
 	}
 
 	// 그리기: 배경과 위쪽이 좁은 사다리꼴 도로를 그립니다.
@@ -248,6 +277,16 @@ function gameLoop() {
 		ctx.beginPath();
 		ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
 		ctx.fill();
+		if (showHitbox) {
+			ctx.strokeStyle = "red";
+			ctx.lineWidth = 2;
+			ctx.strokeRect(
+				enemy.x - enemy.size,
+				enemy.y - enemy.size,
+				enemy.size * 2,
+				enemy.size * 2,
+			);
+		}
 	}
 	ctx.restore();
 
@@ -259,6 +298,11 @@ function gameLoop() {
 		layout.playerBodySize,
 		layout.playerBodySize,
 	);
+	if (showHitbox) {
+		ctx.strokeStyle = "red";
+		ctx.lineWidth = 2;
+		ctx.strokeRect(playerHitbox.x, playerHitbox.y, playerHitbox.width, playerHitbox.height);
+	}
 
 	// 길 위쪽에 제한시간과 과제 완성도를 표시합니다.
 	ctx.fillStyle = colors.text;
