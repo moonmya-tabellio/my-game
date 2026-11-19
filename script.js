@@ -14,6 +14,7 @@ const enemySpeeds = [2, 2.5, 3, 3.5, 4];
 // 과제 완성도와 충돌 한 번당 감점 점수입니다.
 let completion = 100;
 const collisionPenalty = 10;
+let gameState = "playing";
 // true이면 충돌 판정 영역을 빨간 테두리로 표시합니다.
 const showHitbox = true;
 
@@ -43,6 +44,7 @@ const layout = {
 };
 
 let playerLaneIndex = Math.floor(layout.laneCount / 2);
+const startingPlayerLaneIndex = playerLaneIndex;
 
 // 배경과 게임 요소에 사용할 색을 정합니다.
 const colors = {
@@ -94,6 +96,22 @@ function checkCollision(rectA, rectB) {
 
 let cloudOffsetY = 0;
 let collidingEnemyIndices = new Set();
+
+// 게임을 처음 상태로 되돌리고 다시 시작합니다.
+function resetGame() {
+	completion = 100;
+	gameState = "playing";
+	playerLaneIndex = startingPlayerLaneIndex;
+	collidingEnemyIndices = new Set();
+	for (const key of Object.keys(keys)) {
+		keys[key] = false;
+	}
+	for (const [index, enemy] of enemies.entries()) {
+		enemyLaneIndices[index] = Math.floor(Math.random() * layout.laneCount);
+		enemy.x = getLaneX(enemyLaneIndices[index], 0);
+		enemy.y = -enemy.size;
+	}
+}
 
 // ===== 창문 그리기 (v3 창문 스타일 + 꼭짓점 직접 지정) =====
 // side: 왼쪽 -1, 오른쪽 1 (오른쪽은 x를 좌우 대칭으로 뒤집어 계산)
@@ -208,34 +226,39 @@ function gameLoop() {
 	// 지우기: 이전 프레임의 화면을 지웁니다.
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-	// 적은 무작위로 정한 레인을 따라가며, 아래로 벗어나면 새 레인 위쪽에서 다시 시작합니다.
-	for (const [index, enemy] of enemies.entries()) {
-		enemy.y += enemy.speed;
-		if (enemy.y - enemy.size > canvas.height) {
-			enemy.y = -enemy.size;
-			enemyLaneIndices[index] = Math.floor(Math.random() * layout.laneCount);
+	if (gameState === "playing") {
+		// 적은 무작위로 정한 레인을 따라가며, 아래로 벗어나면 새 레인 위쪽에서 다시 시작합니다.
+		for (const [index, enemy] of enemies.entries()) {
+			enemy.y += enemy.speed;
+			if (enemy.y - enemy.size > canvas.height) {
+				enemy.y = -enemy.size;
+				enemyLaneIndices[index] = Math.floor(Math.random() * layout.laneCount);
+			}
+			enemy.x = getLaneX(enemyLaneIndices[index], getPerspectiveDepth(enemy.y));
 		}
-		enemy.x = getLaneX(enemyLaneIndices[index], getPerspectiveDepth(enemy.y));
-	}
 
-	// 각 적의 사각형 판정 영역을 플레이어와 비교하고, 새로 부딪쳤을 때만 감점합니다.
-	const currentCollisions = new Set();
-	for (const [index, enemy] of enemies.entries()) {
-		const enemyHitbox = {
-			x: enemy.x - enemy.size,
-			y: enemy.y - enemy.size,
-			width: enemy.size * 2,
-			height: enemy.size * 2,
-		};
-		if (checkCollision(playerHitbox, enemyHitbox)) {
-			currentCollisions.add(index);
-			if (!collidingEnemyIndices.has(index)) {
-				console.log("충돌!");
-				completion = Math.max(0, completion - collisionPenalty);
+		// 적과 새로 충돌할 때마다 한 번씩 감점합니다.
+		const currentCollisions = new Set();
+		for (const [index, enemy] of enemies.entries()) {
+			const enemyHitbox = {
+				x: enemy.x - enemy.size,
+				y: enemy.y - enemy.size,
+				width: enemy.size * 2,
+				height: enemy.size * 2,
+			};
+			if (checkCollision(playerHitbox, enemyHitbox)) {
+				currentCollisions.add(index);
+				if (!collidingEnemyIndices.has(index)) {
+					console.log("충돌!");
+					completion = Math.max(0, completion - collisionPenalty);
+				}
 			}
 		}
+		collidingEnemyIndices = currentCollisions;
+		if (completion === 0) {
+			gameState = "gameover";
+		}
 	}
-	collidingEnemyIndices = currentCollisions;
 
 	// 그리기: 배경과 위쪽이 좁은 사다리꼴 도로를 그립니다.
 	ctx.fillStyle = colors.side;
@@ -324,6 +347,21 @@ function gameLoop() {
 	ctx.textAlign = "right";
 	ctx.fillText(`과제 완성도 ${completion}점`, layout.roadX + layout.roadWidth - layout.hudPadding, layout.hudY);
 
+	if (gameState === "gameover") {
+		// 게임 오버 안내를 화면 가운데에 표시합니다.
+		ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.fillStyle = colors.text;
+		ctx.textAlign = "center";
+		ctx.textBaseline = "middle";
+		ctx.font = "bold 56px sans-serif";
+		ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 60);
+		ctx.font = "28px sans-serif";
+		ctx.fillText(`최종 점수: ${completion}`, canvas.width / 2, canvas.height / 2 + 5);
+		ctx.font = "18px sans-serif";
+		ctx.fillText("R 키를 눌러 다시 시작", canvas.width / 2, canvas.height / 2 + 55);
+	}
+
 	requestAnimationFrame(gameLoop);
 }
 
@@ -331,6 +369,16 @@ gameLoop();
 
 document.addEventListener("keydown", (event) => {
 	console.log(event.key);
+	if (gameState === "gameover") {
+		if (event.key.toLowerCase() === "r" && !event.repeat) {
+			resetGame();
+		}
+		if (event.key.startsWith("Arrow") || event.key === " ") {
+			event.preventDefault();
+		}
+		return;
+	}
+
 	if (Object.hasOwn(keys, event.key)) {
 		// 키를 누르고 있는 동안 반복 이동하지 않도록 최초 입력만 처리합니다.
 		if (!keys[event.key]) {
