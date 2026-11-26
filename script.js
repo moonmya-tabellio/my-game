@@ -86,6 +86,16 @@ function getLaneX(laneIndex, depth) {
 	return roadLeft + (roadRight - roadLeft) * (laneIndex + 0.5) / layout.laneCount;
 }
 
+function getRoadBounds(y) {
+	const depth = getPerspectiveDepth(y);
+	const farRoadLeft = vanishingX - layout.farRoadWidth / 2;
+	const farRoadRight = vanishingX + layout.farRoadWidth / 2;
+	return {
+		left: farRoadLeft + (layout.roadX - farRoadLeft) * depth,
+		right: farRoadRight + (layout.roadX + layout.roadWidth - farRoadRight) * depth,
+	};
+}
+
 // 두 사각형의 가로와 세로가 모두 겹치는지 확인합니다.
 function checkCollision(rectA, rectB) {
 	return rectA.x < rectB.x + rectB.width
@@ -96,6 +106,64 @@ function checkCollision(rectA, rectB) {
 
 let cloudOffsetY = 0;
 let collidingEnemyIndices = new Set();
+let paperParticles = [];
+
+function spawnPaperParticles(y) {
+	for (let index = 0; index < 22; index += 1) {
+		const size = 12 + Math.random() * 8;
+		const particleX = size + Math.random() * (canvas.width - size * 2);
+		const particleY = Math.max(10, Math.min(canvas.height - 12, y + (Math.random() - 0.5) * 180));
+		const roadBounds = getRoadBounds(particleY);
+		const side = particleX < vanishingX ? -1 : 1;
+		const life = 80 + Math.random() * 20;
+		paperParticles.push({
+			x: particleX,
+			y: particleY,
+			size,
+			side,
+			vx: side * (3 + Math.random() * 2),
+			vy: (Math.random() - 0.5) * 3,
+			rotation: Math.random() * Math.PI,
+			rotationSpeed: (Math.random() - 0.5) * 0.24,
+			life,
+			hasReachedBackground: particleX + size / 2 <= roadBounds.left
+				|| particleX - size / 2 >= roadBounds.right,
+		});
+	}
+}
+
+function updatePaperParticles() {
+	paperParticles = paperParticles.filter((particle) => particle.life > 0);
+	for (const particle of paperParticles) {
+		particle.x += particle.vx;
+		particle.y += particle.vy;
+		particle.rotation += particle.rotationSpeed;
+		particle.life -= 1;
+
+		const roadBounds = getRoadBounds(particle.y);
+		if (particle.side < 0 && particle.x + particle.size / 2 <= roadBounds.left) {
+			particle.hasReachedBackground = true;
+		} else if (particle.side > 0 && particle.x - particle.size / 2 >= roadBounds.right) {
+			particle.hasReachedBackground = true;
+		}
+	}
+}
+
+function drawPaperParticles() {
+	for (const particle of paperParticles) {
+		ctx.save();
+		const fadeAlpha = Math.min(1, particle.life / 12);
+		ctx.globalAlpha = fadeAlpha * (particle.hasReachedBackground ? 1 : 0.28);
+		ctx.translate(particle.x, particle.y);
+		ctx.rotate(particle.rotation);
+		ctx.fillStyle = "#fffaf0";
+		ctx.strokeStyle = "#454545";
+		ctx.lineWidth = 1.5;
+		ctx.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size * 0.7);
+		ctx.strokeRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size * 0.7);
+		ctx.restore();
+	}
+}
 
 // 게임을 처음 상태로 되돌리고 다시 시작합니다.
 function resetGame() {
@@ -103,6 +171,7 @@ function resetGame() {
 	gameState = "playing";
 	playerLaneIndex = startingPlayerLaneIndex;
 	collidingEnemyIndices = new Set();
+	paperParticles = [];
 	for (const key of Object.keys(keys)) {
 		keys[key] = false;
 	}
@@ -213,6 +282,8 @@ function drawWindows() {
 // ===== 창문 그리기 끝 =====
 
 function gameLoop() {
+	updatePaperParticles();
+
 	// 플레이어를 현재 레인의 가운데에 배치합니다.
 	const playerDepth = getPerspectiveDepth(layout.playerBodyY + layout.playerBodySize / 2);
 	layout.playerCenterX = getLaneX(playerLaneIndex, playerDepth);
@@ -251,6 +322,7 @@ function gameLoop() {
 				if (!collidingEnemyIndices.has(index)) {
 					console.log("충돌!");
 					completion = Math.max(0, completion - collisionPenalty);
+					spawnPaperParticles(enemy.y);
 				}
 			}
 		}
@@ -278,6 +350,9 @@ function gameLoop() {
 
 	// 벽의 창문을 그립니다.
 	drawWindows();
+
+	// 종이 조각은 도로 바깥 배경에만 표시합니다.
+	drawPaperParticles();
 
 	// 레인 구분선을 흰색으로 그립니다.
 	ctx.strokeStyle = colors.laneLine;
