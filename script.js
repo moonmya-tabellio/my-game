@@ -10,7 +10,11 @@ const keys = {
 // 적의 개수, 크기, 시작 속도를 설정합니다.
 const enemyCount = 5;
 const enemySize = 15;
-const enemySpeeds = [2, 2.5, 3, 3.5, 4];
+const enemySpeeds = [2.3, 2.8, 3.3, 3.8, 4.3];
+const maxEnemiesPerLane = 2;
+const framesPerSpeedIncrease = 1800;
+const maxEnemySpeedIncrease = 2;
+let elapsedPlayingFrames = 0;
 // 과제 완성도와 충돌 한 번당 감점 점수입니다.
 let completion = 100;
 const collisionPenalty = 10;
@@ -62,10 +66,32 @@ const colors = {
 
 // 적마다 레인을 하나씩 맡아, 각 레인의 가운데에서 시작합니다.
 const vanishingX = canvas.width / 2;
-const enemyLaneIndices = Array.from(
-	{ length: enemyCount },
-	() => Math.floor(Math.random() * layout.laneCount),
-);
+const enemyLaneIndices = [];
+
+function getRandomEnemyLane(excludedIndex = -1) {
+	const laneCounts = Array(layout.laneCount).fill(0);
+	for (const [index, laneIndex] of enemyLaneIndices.entries()) {
+		if (index !== excludedIndex) {
+			laneCounts[laneIndex] += 1;
+		}
+	}
+
+	const availableLaneSlots = [];
+	for (const [laneIndex, count] of laneCounts.entries()) {
+		for (let slot = count; slot < maxEnemiesPerLane; slot += 1) {
+			availableLaneSlots.push(laneIndex);
+		}
+	}
+	if (availableLaneSlots.length === 0) {
+		throw new Error("레인마다 장애물을 2개까지만 배치할 수 있습니다.");
+	}
+	return availableLaneSlots[Math.floor(Math.random() * availableLaneSlots.length)];
+}
+
+for (let index = 0; index < enemyCount; index += 1) {
+	enemyLaneIndices.push(getRandomEnemyLane());
+}
+
 const enemies = Array.from({ length: enemyCount }, (_, index) => ({
 	x: getLaneX(enemyLaneIndices[index], 0),
 	y: -enemySize,
@@ -169,16 +195,19 @@ function drawPaperParticles() {
 function resetGame() {
 	completion = 100;
 	gameState = "playing";
+	elapsedPlayingFrames = 0;
 	playerLaneIndex = startingPlayerLaneIndex;
 	collidingEnemyIndices = new Set();
 	paperParticles = [];
 	for (const key of Object.keys(keys)) {
 		keys[key] = false;
 	}
+	enemyLaneIndices.length = 0;
 	for (const [index, enemy] of enemies.entries()) {
-		enemyLaneIndices[index] = Math.floor(Math.random() * layout.laneCount);
+		enemyLaneIndices.push(getRandomEnemyLane());
 		enemy.x = getLaneX(enemyLaneIndices[index], 0);
 		enemy.y = -enemy.size;
+		enemy.speed = enemySpeeds[index];
 	}
 }
 
@@ -298,12 +327,15 @@ function gameLoop() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 	if (gameState === "playing") {
+		elapsedPlayingFrames += 1;
 		// 적은 무작위로 정한 레인을 따라가며, 아래로 벗어나면 새 레인 위쪽에서 다시 시작합니다.
 		for (const [index, enemy] of enemies.entries()) {
+			enemy.speed = enemySpeeds[index]
+				+ Math.min(elapsedPlayingFrames / framesPerSpeedIncrease, maxEnemySpeedIncrease);
 			enemy.y += enemy.speed;
 			if (enemy.y - enemy.size > canvas.height) {
 				enemy.y = -enemy.size;
-				enemyLaneIndices[index] = Math.floor(Math.random() * layout.laneCount);
+				enemyLaneIndices[index] = getRandomEnemyLane(index);
 			}
 			enemy.x = getLaneX(enemyLaneIndices[index], getPerspectiveDepth(enemy.y));
 		}
